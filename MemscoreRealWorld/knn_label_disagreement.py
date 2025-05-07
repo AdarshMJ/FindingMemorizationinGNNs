@@ -669,8 +669,3 @@ def run_knn_label_disagreement_analysis(
             logger.info(f"- Statistical significance: p={best_p_val:.6f} ({'significant' if best_p_val < 0.05 else 'not significant'})")
     
     return results
-
-# For testing
-if __name__ == "__main__":
-    # This section would be used for standalone testing
-    pass
