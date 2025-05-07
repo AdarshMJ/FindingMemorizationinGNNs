@@ -1,1 +1,1 @@
-# FindingMemo-rization-GNNs
+# FindingMemorizationinGNNs
