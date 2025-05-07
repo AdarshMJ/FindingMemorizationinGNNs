@@ -359,89 +359,89 @@ def plot_node_memorization_analysis(
     plt.savefig(g_conf_path, dpi=300, bbox_inches='tight')
     plt.close()
 
-def calculate_mlp_feature_confidence(
-    data: Data,
-    train_indices_f: Union[List[int], torch.Tensor],
-    num_classes: int,
-    mlp_hidden_dim: int = 64,
-    mlp_epochs: int = 100,
-    mlp_lr: float = 0.01,
-    device: torch.device = torch.device('cpu')
-) -> torch.Tensor:
-    """
-    Trains a simple MLP on node features to predict labels, then returns the confidence 
-    score for true labels of all nodes. This represents feature predictiveness.
+# def calculate_mlp_feature_confidence(
+#     data: Data,
+#     train_indices_f: Union[List[int], torch.Tensor],
+#     num_classes: int,
+#     mlp_hidden_dim: int = 64,
+#     mlp_epochs: int = 100,
+#     mlp_lr: float = 0.01,
+#     device: torch.device = torch.device('cpu')
+# ) -> torch.Tensor:
+#     """
+#     Trains a simple MLP on node features to predict labels, then returns the confidence 
+#     score for true labels of all nodes. This represents feature predictiveness.
     
-    Args:
-        data: PyG Data object containing x (features) and y (labels)
-        train_indices_f: Indices of nodes used to train the original GNN model f
-        num_classes: Number of classes in the dataset
-        mlp_hidden_dim: Hidden dimension for the MLP
-        mlp_epochs: Number of training epochs for the MLP
-        mlp_lr: Learning rate for training the MLP
-        device: PyTorch device to use for computation
+#     Args:
+#         data: PyG Data object containing x (features) and y (labels)
+#         train_indices_f: Indices of nodes used to train the original GNN model f
+#         num_classes: Number of classes in the dataset
+#         mlp_hidden_dim: Hidden dimension for the MLP
+#         mlp_epochs: Number of training epochs for the MLP
+#         mlp_lr: Learning rate for training the MLP
+#         device: PyTorch device to use for computation
         
-    Returns:
-        Conf_Features_scores: Tensor containing confidence scores for each node's true label
-    """
-    # Define a simple MLP model
-    class FeatureMLP(nn.Module):
-        def __init__(self, input_dim, hidden_dim, output_dim):
-            super(FeatureMLP, self).__init__()
-            self.fc1 = nn.Linear(input_dim, hidden_dim)
-            self.fc2 = nn.Linear(hidden_dim, output_dim)
+#     Returns:
+#         Conf_Features_scores: Tensor containing confidence scores for each node's true label
+#     """
+#     # Define a simple MLP model
+#     class FeatureMLP(nn.Module):
+#         def __init__(self, input_dim, hidden_dim, output_dim):
+#             super(FeatureMLP, self).__init__()
+#             self.fc1 = nn.Linear(input_dim, hidden_dim)
+#             self.fc2 = nn.Linear(hidden_dim, output_dim)
             
-        def forward(self, x):
-            x = F.relu(self.fc1(x))
-            x = self.fc2(x)
-            return x
+#         def forward(self, x):
+#             x = F.relu(self.fc1(x))
+#             x = self.fc2(x)
+#             return x
     
-    # Get input dimension from data
-    input_dim = data.x.shape[1]
+#     # Get input dimension from data
+#     input_dim = data.x.shape[1]
     
-    # Instantiate the MLP and move to device
-    mlp_model = FeatureMLP(input_dim, mlp_hidden_dim, num_classes).to(device)
+#     # Instantiate the MLP and move to device
+#     mlp_model = FeatureMLP(input_dim, mlp_hidden_dim, num_classes).to(device)
     
-    # Prepare training data
-    if isinstance(train_indices_f, list):
-        train_indices_f = torch.tensor(train_indices_f, device=device)
-    else:
-        train_indices_f = train_indices_f.to(device)
+#     # Prepare training data
+#     if isinstance(train_indices_f, list):
+#         train_indices_f = torch.tensor(train_indices_f, device=device)
+#     else:
+#         train_indices_f = train_indices_f.to(device)
     
-    # Extract features and labels for training
-    train_features = data.x[train_indices_f].to(device)
-    train_labels = data.y[train_indices_f].to(device)
+#     # Extract features and labels for training
+#     train_features = data.x[train_indices_f].to(device)
+#     train_labels = data.y[train_indices_f].to(device)
     
-    # Set up optimizer and loss function
-    optimizer = torch.optim.Adam(mlp_model.parameters(), lr=mlp_lr)
-    criterion = nn.CrossEntropyLoss()
+#     # Set up optimizer and loss function
+#     optimizer = torch.optim.Adam(mlp_model.parameters(), lr=mlp_lr)
+#     criterion = nn.CrossEntropyLoss()
     
-    # Train the MLP
-    mlp_model.train()
-    for epoch in range(mlp_epochs):
-        # Forward pass
-        optimizer.zero_grad()
-        outputs = mlp_model(train_features)
-        loss = criterion(outputs, train_labels)
+#     # Train the MLP
+#     mlp_model.train()
+#     for epoch in range(mlp_epochs):
+#         # Forward pass
+#         optimizer.zero_grad()
+#         outputs = mlp_model(train_features)
+#         loss = criterion(outputs, train_labels)
         
-        # Backward pass and optimize
-        loss.backward()
-        optimizer.step()
+#         # Backward pass and optimize
+#         loss.backward()
+#         optimizer.step()
     
-    # Calculate confidence scores for all nodes
-    mlp_model.eval()
-    with torch.no_grad():
-        # Get predictions for all nodes
-        all_features = data.x.to(device)
-        logits = mlp_model(all_features)
-        probabilities = F.softmax(logits, dim=1)
+#     # Calculate confidence scores for all nodes
+#     mlp_model.eval()
+#     with torch.no_grad():
+#         # Get predictions for all nodes
+#         all_features = data.x.to(device)
+#         logits = mlp_model(all_features)
+#         probabilities = F.softmax(logits, dim=1)
         
-        # Extract the probability for true labels
-        true_labels = data.y.to(device)
-        batch_size = true_labels.size(0)
+#         # Extract the probability for true labels
+#         true_labels = data.y.to(device)
+#         batch_size = true_labels.size(0)
         
-        # Use gather to extract the probability assigned to the true class for each node
-        true_class_indices = true_labels.view(-1, 1)
-        Conf_Features_scores = torch.gather(probabilities, 1, true_class_indices).squeeze()
+#         # Use gather to extract the probability assigned to the true class for each node
+#         true_class_indices = true_labels.view(-1, 1)
+#         Conf_Features_scores = torch.gather(probabilities, 1, true_class_indices).squeeze()
     
-    return Conf_Features_scores.cpu()
+#     return Conf_Features_scores.cpu()
