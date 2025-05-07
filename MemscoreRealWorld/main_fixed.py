@@ -1,9 +1,8 @@
 import argparse
 import torch
 import torch.nn.functional as F
-from torch_geometric.datasets import Planetoid, Amazon, Actor, WikipediaNetwork, WebKB, HeterophilousGraphDataset
-from torch_geometric.transforms import RandomNodeSplit, LargestConnectedComponents
-from torch_geometric.transforms import Compose
+from torch_geometric.datasets import Planetoid, Actor, WikipediaNetwork, WebKB
+from torch_geometric.transforms import RandomNodeSplit, LargestConnectedComponents,Compose
 import os
 import logging
 from model import NodeGCN, NodeGAT, NodeGraphConv,NodeGraphSAGE
@@ -17,16 +16,11 @@ import matplotlib.pyplot as plt
 import time
 from memorization import calculate_node_memorization_score, plot_node_memorization_analysis
 from scipy import stats
-from nli_analysis import *
-from reliability_analysis import *
+#from nli_analysis import *
+#from reliability_analysis import *
 from nodeli import get_graph_and_labels_from_pyg_dataset, li_node, h_adj
 import csv
-# from dimensionality_analysis import plot_memorization_dimensionality
-# from analysis import analyze_memorization_vs_misclassification
-from dataloader import load_npz_dataset, get_heterophilic_datasets
 from knn_label_disagreement import run_knn_label_disagreement_analysis
-from knn_disagreement_visualizer import visualize_knn_disagreement_process
-
 
 def set_seed(seed):
     random.seed(seed)
@@ -557,9 +551,8 @@ def main():
     # Get all available heterophilic datasets
     heterophilic_datasets = get_heterophilic_datasets()
     # Combine all dataset choices
-    all_datasets = ['Cora', 'Citeseer', 'Pubmed', 'Computers', 'Photo', 'Actor', 
-                   'Chameleon', 'Squirrel', 'Cornell', 'Wisconsin', 'Texas',
-                   'Roman-empire', 'Amazon-ratings'] + heterophilic_datasets
+    all_datasets = ['Cora', 'Citeseer', 'Pubmed', 'Actor', 
+                   'Chameleon', 'Squirrel', 'Cornell', 'Wisconsin', 'Texas']
                    
     parser.add_argument('--dataset', type=str, required=True,
                        choices=all_datasets,
@@ -573,22 +566,7 @@ def main():
                        help='Number of attention heads for GAT')
     parser.add_argument('--lr', type=float, default=0.01)
     parser.add_argument('--weight_decay', type=float, default=5e-4)
-    parser.add_argument('--epochs', type=int, default=100)
-    parser.add_argument('--swap_nodes', action='store_true', 
-                       help='Swap candidate and independent nodes')
-    parser.add_argument('--num_passes', type=int, default=1,
-                       help='Number of forward passes to average for confidence scores')
-    parser.add_argument('--k_hops', type=int, default=2,
-                       help='Number of hops for local neighborhood in NLI calculation')
-    parser.add_argument('--noise_level', type=float, default=1.0,
-                      help='Standard deviation of Gaussian noise for reliability analysis (default: 0.1)')
-    parser.add_argument('--perturb_ratio', type=float, default=0.05,
-                      help='Ratio of labels to perturb for label-based reliability analysis (default: 0.05)')
-    parser.add_argument('--label_perturb_epochs', type=int, default=1,
-                      help='Number of epochs to train on perturbed labels (default: 1)')
-    parser.add_argument('--drop_ratio', type=float, default=1.0,
-                      help='Ratio of nodes to exclude in generalization analysis (default: 0.05)')
-    
+    parser.add_argument('--epochs', type=int, default=100)    
     args = parser.parse_args()
     
     # Setup
@@ -628,10 +606,6 @@ def main():
     extra_indices = test_indices[:extra_size].tolist()  # Take first extra_size test indices
 
     logger.info("\nPartition Statistics:")
-    if args.swap_nodes:
-        logger.info("Note: Candidate and Independent nodes have been swapped!")
-        logger.info("Original independent nodes are now being used as candidate nodes")
-        logger.info("Original candidate nodes are now being used as independent nodes")
     logger.info(f"Total train nodes: {data.train_mask.sum().item()}")
     logger.info(f"Shared: {len(shared_idx)} nodes")
     logger.info(f"Candidate: {len(candidate_idx)} nodes")
